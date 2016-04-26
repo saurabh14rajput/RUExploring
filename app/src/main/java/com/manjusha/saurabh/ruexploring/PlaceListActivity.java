@@ -9,6 +9,13 @@ import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.view.View;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import io.branch.referral.Branch;
+import io.branch.referral.BranchError;
+
+
 
 /**
  * An activity representing a list of Places. This activity
@@ -36,8 +43,53 @@ public class PlaceListActivity extends AppCompatActivity
     private boolean mTwoPane;
 
     @Override
+    public void onNewIntent(Intent intent) {
+        this.setIntent(intent);
+
+
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        Branch branch = Branch.getInstance();
+        //Branch branch = Branch.getInstance(getApplicationContext());
+        branch.initSession(new Branch.BranchReferralInitListener() {
+            @Override
+            public void onInitFinished(JSONObject referringParams, BranchError error) {
+                if (error == null) {
+                    // params are the deep linked params associated with the link that the user clicked before showing up
+                    String placeId="";
+                    Log.d("BranchConfigTest", "deep link data: " + referringParams.toString());
+                    try {
+                        placeId = referringParams.get("placeId").toString();
+                        Log.d("ID retrived from Json: ", placeId);
+
+                        Intent detailIntent;
+                        detailIntent = new Intent(getApplicationContext(), PlaceDetailActivity.class);
+                        detailIntent.putExtra(PlaceDetailFragment.ARG_ITEM_ID, placeId);
+                       // onNewIntent(detailIntent);
+                        startActivity(detailIntent);
+                        //intent.putExtra(PlaceDetailFragment.ARG_ITEM_ID, id);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+            }
+        }, this.getIntent().getData(), this);
+
+    }
+
+
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //Branch.getAutoInstance(this);
         setContentView(R.layout.activity_place_app_bar);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -68,7 +120,9 @@ public class PlaceListActivity extends AppCompatActivity
         }
 
         // TODO: If exposing deep links into your app, handle intents here.
+
     }
+
 
     /**
      * Callback method from {@link PlaceListFragment.Callbacks}

@@ -17,6 +17,13 @@ import android.view.MenuItem;
 
 import com.manjusha.saurabh.ruexploring.dummy.DummyContent;
 
+import io.branch.indexing.BranchUniversalObject;
+import io.branch.referral.Branch;
+import io.branch.referral.BranchError;
+import io.branch.referral.SharingHelper;
+import io.branch.referral.util.LinkProperties;
+import io.branch.referral.util.ShareSheetStyle;
+
 import static com.manjusha.saurabh.ruexploring.R.*;
 
 /**
@@ -33,24 +40,27 @@ public class PlaceDetailActivity extends AppCompatActivity {
     double longitude;
     String uriUber;
     String uriMap;
+    String uriShare;
+    String placeId;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(layout.activity_place_detail);
         Toolbar toolbar = (Toolbar) findViewById(id.detail_toolbar);
         setSupportActionBar(toolbar);
-        String id = getIntent().getStringExtra(PlaceDetailFragment.ARG_ITEM_ID);
-        lattitude =DummyContent.ITEMS.get(Integer.parseInt(id)).getLatitude();
-        longitude =DummyContent.ITEMS.get(Integer.parseInt(id)).getLongitude();
-        uriUber = makeUriUber(id);
-        uriMap= makeUriMap(id);
+        placeId = getIntent().getStringExtra(PlaceDetailFragment.ARG_ITEM_ID);
+        lattitude = DummyContent.ITEMS.get(Integer.parseInt(placeId)).getLatitude();
+        longitude = DummyContent.ITEMS.get(Integer.parseInt(placeId)).getLongitude();
+        uriUber = makeUriUber(placeId);
+        uriMap = makeUriMap(placeId);
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //Snackbar.make(view, "UBER deep linking coming soon!", Snackbar.LENGTH_LONG)
-                  //      .setAction("Action", null).show();
+                //      .setAction("Action", null).show();
                 try {
                     PackageManager pm = getPackageManager();
                     pm.getPackageInfo("com.ubercab", PackageManager.GET_ACTIVITIES);
@@ -90,6 +100,30 @@ public class PlaceDetailActivity extends AppCompatActivity {
             }
         });
 
+        FloatingActionButton share = (FloatingActionButton) findViewById(R.id.share);
+        share.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //Snackbar.make(view, "UBER deep linking coming soon!", Snackbar.LENGTH_LONG)
+                //      .setAction("Action", null).show();
+                try {
+                    shareBranchLink();
+                    /*Intent sendIntent = new Intent(Intent.ACTION_VIEW);
+                    sendIntent.setData(Uri.parse("sms:"));
+                    sendIntent.putExtra("sms_body", "Hello World");
+                    startActivity(sendIntent);*/
+                } catch (Exception e) {
+                    // No Uber app! Open mobile website.
+                    String url = "https://m.uber.com/sign-up?client_id=Yhml9abrOFNKA3i-sky_LFWgXPBVh7gC";
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
+                }
+
+            }
+        });
+
+
         // Show the Up button in the action bar.//this is the back button on top of the detail fragment
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
@@ -120,8 +154,6 @@ public class PlaceDetailActivity extends AppCompatActivity {
     }
 
 
-
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
@@ -139,38 +171,81 @@ public class PlaceDetailActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public String makeUriUber(String id){
+    public void shareBranchLink(){
+        BranchUniversalObject branchUniversalObject = new BranchUniversalObject()
+                .setCanonicalIdentifier("item/12345")
+                .setTitle(DummyContent.ITEMS.get(Integer.parseInt(placeId)).content)
+                .setContentDescription("Awesome place yo!")
+                .setContentIndexingMode(BranchUniversalObject.CONTENT_INDEX_MODE.PUBLIC)
+                .addContentMetadata("placeId", placeId);
+
+
+        LinkProperties linkProperties = new LinkProperties()
+                .setChannel("facebook")
+                .setFeature("sharing")
+                .addControlParameter("$desktop_url", "http://example.com/home")
+                .addControlParameter("$ios_url", "http://example.com/ios");
+        ShareSheetStyle shareSheetStyle = new ShareSheetStyle(PlaceDetailActivity.this, "Check this out!", "This stuff is awesome: ")
+                .setCopyUrlStyle(getResources().getDrawable(android.R.drawable.ic_menu_send), "Copy", "Added to clipboard")
+                .setMoreOptionStyle(getResources().getDrawable(android.R.drawable.ic_menu_search), "Show more")
+                .addPreferredSharingOption(SharingHelper.SHARE_WITH.FACEBOOK)
+                .addPreferredSharingOption(SharingHelper.SHARE_WITH.EMAIL);
+
+        branchUniversalObject.showShareSheet(this,
+                linkProperties,
+                shareSheetStyle,
+                new Branch.BranchLinkShareListener() {
+                    @Override
+                    public void onShareLinkDialogLaunched() {
+                    }
+                    @Override
+                    public void onShareLinkDialogDismissed() {
+                    }
+                    @Override
+                    public void onLinkShareResponse(String sharedLink, String sharedChannel, BranchError error) {
+                        Log.d("generated link",sharedLink);
+                    }
+                    @Override
+                    public void onChannelSelected(String channelName) {
+                    }
+                });
+
+    }
+
+
+    public String makeUriUber(String id) {
 
         Uri.Builder builder = new Uri.Builder();
         //String myUrl="";
         builder.scheme("uber://")
-                        .appendQueryParameter("client_id", "Yhml9abrOFNKA3i-sky_LFWgXPBVh7gC")
-                        .appendQueryParameter("action", "setPickup")
-                        .appendQueryParameter("pickup","my_location")
-                        .appendQueryParameter("dropoff[latitude]", Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).latitude)))
-                        .appendQueryParameter("dropoff[longitude]",Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).longitude)))
-                        .appendQueryParameter("dropoff[nickname]",DummyContent.ITEMS.get(Integer.parseInt(id)).content)
-                        .appendQueryParameter("dropoff[formatted_address]", DummyContent.ITEMS.get(Integer.parseInt(id)).address);
-                                //myUrl= "uber://?client_id=YOUR_CLIENT_ID&action=setPickup&pickup=my_location&dropoff[latitude]=40.500201&dropoff[longitude]=-74.445859&dropoff[nickname]=Zimmerli%20art%20museum&dropoff[formatted_address]=Voorhees%20Hall%2C%2071%20Hamilton%20St%20New%20Brunswick%2C%20NJ%2008901";
+                .appendQueryParameter("client_id", "Yhml9abrOFNKA3i-sky_LFWgXPBVh7gC")
+                .appendQueryParameter("action", "setPickup")
+                .appendQueryParameter("pickup", "my_location")
+                .appendQueryParameter("dropoff[latitude]", Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).latitude)))
+                .appendQueryParameter("dropoff[longitude]", Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).longitude)))
+                .appendQueryParameter("dropoff[nickname]", DummyContent.ITEMS.get(Integer.parseInt(id)).content)
+                .appendQueryParameter("dropoff[formatted_address]", DummyContent.ITEMS.get(Integer.parseInt(id)).address);
+        //myUrl= "uber://?client_id=YOUR_CLIENT_ID&action=setPickup&pickup=my_location&dropoff[latitude]=40.500201&dropoff[longitude]=-74.445859&dropoff[nickname]=Zimmerli%20art%20museum&dropoff[formatted_address]=Voorhees%20Hall%2C%2071%20Hamilton%20St%20New%20Brunswick%2C%20NJ%2008901";
 
 
-                //return "uber://?client_id=YOUR_CLIENT_ID&action=setPickup&pickup=my_location&dropoff[latitude]=40.525421&dropoff[longitude]=-74.437181&dropoff[nickname]=Rutgers%20Cinema&dropoff[formatted_address]=105%20Joyce%20Kilmer%20Ave%2C%20Piscataway%20Township%2C%20NJ%2008854"
+        //return "uber://?client_id=YOUR_CLIENT_ID&action=setPickup&pickup=my_location&dropoff[latitude]=40.525421&dropoff[longitude]=-74.437181&dropoff[nickname]=Rutgers%20Cinema&dropoff[formatted_address]=105%20Joyce%20Kilmer%20Ave%2C%20Piscataway%20Township%2C%20NJ%2008854"
 
 
         String myUrl = builder.build().toString();
         Log.d("URI:", myUrl);
         return myUrl;
     }
-    public String makeUriMap(String id){
+
+    public String makeUriMap(String id) {
 
         Uri.Builder builder = new Uri.Builder();
         //String myUrl="";
         builder.scheme("http")
                 .authority("maps.google.com")
                 .appendEncodedPath("maps")
-                .appendQueryParameter("daddr", Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).latitude))+","+Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).longitude))+"(Zimmerli Art Museum)");
+                .appendQueryParameter("daddr", Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).latitude)) + "," + Double.toString((DummyContent.ITEMS.get(Integer.parseInt(id)).longitude)) + "(Zimmerli Art Museum)");
         //myUrl= "uber://?client_id=YOUR_CLIENT_ID&action=setPickup&pickup=my_location&dropoff[latitude]=40.500201&dropoff[longitude]=-74.445859&dropoff[nickname]=Zimmerli%20art%20museum&dropoff[formatted_address]=Voorhees%20Hall%2C%2071%20Hamilton%20St%20New%20Brunswick%2C%20NJ%2008901";
-       // http://maps.google.com/maps?daddr=40.483853,-74.438940(Zimmerli Art Museum)"
+        // http://maps.google.com/maps?daddr=40.483853,-74.438940(Zimmerli Art Museum)"
         String myUrl = builder.build().toString();
         Log.d("MAP URI:", myUrl);
         return myUrl;
