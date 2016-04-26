@@ -181,6 +181,8 @@ public class PlaceDetailActivity extends AppCompatActivity {
 
 
         LinkProperties linkProperties = new LinkProperties()
+                .setChannel("whatsapp")
+                .setChannel("sms")
                 .setChannel("facebook")
                 .setFeature("sharing")
                 .addControlParameter("$desktop_url", "http://example.com/home")
@@ -188,6 +190,8 @@ public class PlaceDetailActivity extends AppCompatActivity {
         ShareSheetStyle shareSheetStyle = new ShareSheetStyle(PlaceDetailActivity.this, "Check this out!", "This stuff is awesome: ")
                 .setCopyUrlStyle(getResources().getDrawable(android.R.drawable.ic_menu_send), "Copy", "Added to clipboard")
                 .setMoreOptionStyle(getResources().getDrawable(android.R.drawable.ic_menu_search), "Show more")
+                .addPreferredSharingOption(SharingHelper.SHARE_WITH.WHATS_APP)
+                .addPreferredSharingOption(SharingHelper.SHARE_WITH.MESSAGE)
                 .addPreferredSharingOption(SharingHelper.SHARE_WITH.FACEBOOK)
                 .addPreferredSharingOption(SharingHelper.SHARE_WITH.EMAIL);
 
